@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - MyIELTS</title>
-    <link rel="stylesheet" href="../assets/css/main.css?v=2.0">
+    <link rel="stylesheet" href="../assets/css/main.css?v=2.2">
 </head>
 <body>
     <?php
@@ -20,7 +20,7 @@
     $totalSubmissions = db_fetch("SELECT COUNT(*) as count FROM submissions")['count'];
     $pendingSubmissions = db_fetch("SELECT COUNT(*) as count FROM submissions WHERE status = 'pending'")['count'];
     $completedEvaluations = db_fetch("SELECT COUNT(*) as count FROM submissions WHERE status = 'completed'")['count'];
-    $totalTests = db_fetch("SELECT COUNT(*) as count FROM writing_tests WHERE is_active = TRUE")['count'];
+    $activeTests = db_fetch("SELECT COUNT(*) as count FROM writing_tests WHERE is_active = TRUE")['count'];
 
     // Get recent submissions
     $recentSubmissions = db_fetch_all(
@@ -29,159 +29,135 @@
          JOIN users u ON s.user_id = u.id
          LEFT JOIN writing_tests t ON s.test_id = t.id
          ORDER BY s.submitted_at DESC
-         LIMIT 10"
+         LIMIT 5"
     );
     ?>
 
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="navbar-container">
-            <a href="<?php echo BASE_URL; ?>" class="navbar-brand">
-                <img src="<?php echo LOGO_URL . 'No%20Background%20Skiloholic.png'; ?>" alt="MyIELTS Logo" class="navbar-logo">
-                <span>MyIELTS Admin</span>
-            </a>
-
-            <ul class="navbar-menu">
-                <li><a href="index.php" style="color: var(--primary); font-weight: 700;">Dashboard</a></li>
-                <li><a href="tests/manage.php">Manage Tests</a></li>
-                <li><a href="submissions/queue.php">Submission Queue</a></li>
-                <li><a href="users/index.php">Users</a></li>
-                <li><a href="../dashboard.php">User View</a></li>
-                <li><a href="../auth/logout.php">Logout</a></li>
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <a href="<?php echo BASE_URL; ?>admin/index.php" class="sidebar-brand">
+                    <img src="<?php echo LOGO_URL . 'No%20Background%20Skiloholic.png'; ?>" alt="Logo" style="height: 32px;">
+                    MyIELTS Admin
+                </a>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="index.php" class="sidebar-link active">📊 Dashboard</a></li>
+                <li><a href="tests/manage.php" class="sidebar-link">📝 Manage Tests</a></li>
+                <li><a href="submissions/queue.php" class="sidebar-link">📋 Submission Queue</a></li>
+                <li><a href="users/index.php" class="sidebar-link">👥 Manage Users</a></li>
+                <li><hr style="border-color: #374151; margin: 1rem 1.5rem;"></li>
+                <li><a href="../profile/dashboard.php" class="sidebar-link">🏠 User View</a></li>
+                <li><a href="../auth/logout.php" class="sidebar-link">🚪 Logout</a></li>
             </ul>
-        </div>
-    </nav>
+        </aside>
 
-    <div class="container" style="margin-top: var(--spacing-lg); margin-bottom: var(--spacing-xl);">
-        <!-- Welcome Header -->
-        <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-bottom: var(--spacing-lg);">
-            <h1 style="color: white; margin-bottom: var(--spacing-sm);">Admin Dashboard 👨‍💼</h1>
-            <p style="color: rgba(255,255,255,0.9); font-size: 1.125rem;">Welcome, <?php echo htmlspecialchars($user['full_name']); ?></p>
-        </div>
-
-        <!-- Statistics Cards -->
-        <div class="grid grid-3" style="margin-bottom: var(--spacing-xl);">
-            <div class="card">
-                <h3 style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 600; text-transform: uppercase; margin-bottom: var(--spacing-sm);">Total Users</h3>
-                <h1 style="color: var(--primary); font-size: 3rem; margin-bottom: 0;"><?php echo $totalUsers; ?></h1>
-            </div>
-
-            <div class="card">
-                <h3 style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 600; text-transform: uppercase; margin-bottom: var(--spacing-sm);">Total Submissions</h3>
-                <h1 style="color: var(--secondary); font-size: 3rem; margin-bottom: 0;"><?php echo $totalSubmissions; ?></h1>
-            </div>
-
-            <div class="card">
-                <h3 style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 600; text-transform: uppercase; margin-bottom: var(--spacing-sm);">Available Tests</h3>
-                <h1 style="color: var(--info); font-size: 3rem; margin-bottom: 0;"><?php echo $totalTests; ?></h1>
-            </div>
-        </div>
-
-        <div class="grid grid-2" style="margin-bottom: var(--spacing-xl);">
-            <div class="card">
-                <h3 style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 600; text-transform: uppercase; margin-bottom: var(--spacing-sm);">Pending Evaluations</h3>
-                <h1 style="color: var(--warning); font-size: 3rem; margin-bottom: var(--spacing-sm);"><?php echo $pendingSubmissions; ?></h1>
-                <a href="submissions/queue.php" class="btn btn-warning btn-sm">Review Queue</a>
-            </div>
-
-            <div class="card">
-                <h3 style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 600; text-transform: uppercase; margin-bottom: var(--spacing-sm);">completed Evaluations</h3>
-                <h1 style="color: var(--success); font-size: 3rem; margin-bottom: 0;"><?php echo $completedEvaluations; ?></h1>
-            </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="card" style="margin-bottom: var(--spacing-lg);">
-            <h2 style="margin-bottom: var(--spacing-md);">Quick Actions</h2>
-            <div class="grid grid-3">
-                <a href="tests/add.php" class="btn btn-primary btn-lg" style="text-decoration: none;">➕ Add New Test</a>
-                <a href="submissions/queue.php" class="btn btn-secondary btn-lg" style="text-decoration: none;">📋 View Submissions</a>
-                <a href="users/index.php" class="btn btn-secondary btn-lg" style="text-decoration: none;">👥 Manage Users</a>
-            </div>
-        </div>
-
-        <!-- Recent Submissions -->
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">Recent Submissions</h2>
-                <p class="card-subtitle">Latest test submissions from users</p>
-            </div>
-
-            <?php if (empty($recentSubmissions)): ?>
-                <div class="text-center" style="padding: var(--spacing-xl); color: var(--text-secondary);">
-                    <h3>No submissions yet</h3>
-                    <p>Submissions will appear here as users take tests</p>
+        <!-- Main Content -->
+        <main class="admin-main">
+            <!-- Topbar -->
+            <header class="admin-topbar">
+                <h1 class="admin-page-title">Dashboard</h1>
+                <div style="font-weight: 600;">
+                    Welcome, <?php echo htmlspecialchars($user['full_name']); ?> 👋
                 </div>
-            <?php else: ?>
-                <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <thead>
-                            <tr style="border-bottom: 2px solid var(--border); text-align: left;">
-                                <th style="padding: var(--spacing-sm); font-weight: 600;">Student</th>
-                                <th style="padding: var(--spacing-sm); font-weight: 600;">Test</th>
-                                <th style="padding: var(--spacing-sm); font-weight: 600;">Submitted</th>
-                                <th style="padding: var(--spacing-sm); font-weight: 600;">Status</th>
-                                <th style="padding: var(--spacing-sm); font-weight: 600;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($recentSubmissions as $submission): ?>
-                                <tr style="border-bottom: 1px solid var(--border);">
-                                    <td style="padding: var(--spacing-sm);">
-                                        <?php echo htmlspecialchars($submission['full_name']); ?>
-                                    </td>
-                                    <td style="padding: var(--spacing-sm);">
-                                        <?php
-                                        $testName = $submission['is_custom_test'] ? 'Custom Test' : htmlspecialchars($submission['test_title']);
-                                        echo $testName;
-                                        ?>
-                                    </td>
-                                    <td style="padding: var(--spacing-sm); color: var(--text-secondary); font-size: 0.875rem;">
-                                        <?php echo time_ago($submission['submitted_at']); ?>
-                                    </td>
-                                    <td style="padding: var(--spacing-sm);">
-                                        <?php
-                                        $statusColors = [
-                                            'pending' => 'warning',
-                                            'assigned' => 'info',
-                                            'in_evaluation' => 'info',
-                                            'completed' => 'success'
-                                        ];
-                                        $statusLabels = [
-                                            'pending' => 'Pending',
-                                            'assigned' => 'Assigned',
-                                            'in_evaluation' => 'In Review',
-                                            'completed' => 'Completed'
-                                        ];
-                                        $badgeClass = $statusColors[$submission['status']] ?? 'primary';
-                                        echo '<span class="badge badge-' . $badgeClass . '">' . $statusLabels[$submission['status']] . '</span>';
-                                        ?>
-                                    </td>
-                                    <td style="padding: var(--spacing-sm);">
-                                        <?php if ($submission['status'] === 'pending'): ?>
-                                            <a href="submissions/queue.php#submission-<?php echo $submission['id']; ?>" class="btn btn-sm btn-primary">Assign Examiner</a>
-                                        <?php elseif ($submission['status'] === 'completed'): ?>
-                                            <a href="submissions/view.php?id=<?php echo $submission['id']; ?>" class="btn btn-sm btn-secondary">View</a>
-                                        <?php else: ?>
-                                            <a href="submissions/evaluate.php?id=<?php echo $submission['id']; ?>" class="btn btn-sm btn-info">Evaluate</a>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+            </header>
+
+            <div class="admin-content">
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-title">Total Users</div>
+                        <div class="stat-value" style="color: var(--primary);"><?php echo $totalUsers; ?></div>
+                        <div class="stat-desc">Registered students</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Pending Evaluations</div>
+                        <div class="stat-value" style="color: var(--warning);"><?php echo $pendingSubmissions; ?></div>
+                        <div class="stat-desc">Waiting for review</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Completed Reviews</div>
+                        <div class="stat-value" style="color: var(--success);"><?php echo $completedEvaluations; ?></div>
+                        <div class="stat-desc">All time evaluations</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Active Tests</div>
+                        <div class="stat-value" style="color: var(--info);"><?php echo $activeTests; ?></div>
+                        <div class="stat-desc">Available for students</div>
+                    </div>
                 </div>
 
-                <div style="text-align: center; margin-top: var(--spacing-md);">
-                    <a href="submissions/queue.php" class="btn btn-secondary">View All Submissions</a>
+                <!-- Quick Actions & Recent Activity -->
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; margin-top: 2rem;">
+                    <!-- Actions -->
+                    <div class="admin-card">
+                        <h2 class="card-title">🚀 Quick Actions</h2>
+                        <div style="display: grid; gap: 1rem;">
+                            <a href="submissions/queue.php" class="btn btn-warning btn-block" style="text-align: center;">
+                                Review Pending (<?php echo $pendingSubmissions; ?>)
+                            </a>
+                            <a href="tests/add.php" class="btn btn-primary btn-block" style="text-align: center;">
+                                ➕ Add New Test
+                            </a>
+                            <a href="users/index.php" class="btn btn-secondary btn-block" style="text-align: center;">
+                                👥 Manage Users
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Recent Submissions -->
+                    <div class="admin-card">
+                        <div class="card-header">
+                            <h2 class="card-title">📝 Recent Submissions</h2>
+                            <a href="submissions/queue.php" style="color: var(--primary); font-size: 0.9rem;">View All</a>
+                        </div>
+
+                        <?php if (empty($recentSubmissions)): ?>
+                            <p style="color: #6b7280; text-align: center; padding: 2rem;">No submissions yet.</p>
+                        <?php else: ?>
+                            <div class="admin-table-wrapper">
+                                <table class="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Student</th>
+                                            <th>Test</th>
+                                            <th>Status</th>
+                                            <th>Time</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($recentSubmissions as $sub): ?>
+                                            <tr>
+                                                <td style="font-weight: 500;">
+                                                    <?php echo htmlspecialchars($sub['full_name']); ?>
+                                                </td>
+                                                <td>
+                                                    <?php echo $sub['is_custom_test'] ? 'Custom Test' : htmlspecialchars($sub['test_title']); ?>
+                                                </td>
+                                                <td>
+                                                    <span class="status-badge status-<?php echo $sub['status']; ?>">
+                                                        <?php echo ucwords(str_replace('_', ' ', $sub['status'])); ?>
+                                                    </span>
+                                                </td>
+                                                <td style="color: #6b7280; font-size: 0.85rem;">
+                                                    <?php echo time_ago($sub['submitted_at']); ?>
+                                                </td>
+                                                <td>
+                                                    <a href="submissions/view.php?id=<?php echo $sub['id']; ?>" class="btn btn-sm btn-secondary">View</a>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
-            <?php endif; ?>
-        </div>
+            </div>
+        </main>
     </div>
-
-    <!-- Footer -->
-    <!-- Footer -->
-    <?php require_once __DIR__ . '/../includes/footer.php'; ?>
 
     <script src="../assets/js/main.js"></script>
 </body>

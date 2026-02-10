@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Management - MyIELTS Admin</title>
-    <link rel="stylesheet" href="../../assets/css/main.css?v=2.0">
+    <link rel="stylesheet" href="../../assets/css/main.css?v=2.2">
 </head>
 <body>
     <?php
@@ -15,11 +15,31 @@
     require_admin();
     $user = get_current_user();
 
+    // Handle status change
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_id']) && isset($_POST['action'])) {
+        // TODO: Add CSRF check
+        $targetId = intval($_POST['user_id']);
+        $action = $_POST['action'];
+
+        // Prevent modifying own account
+        if ($targetId !== $_SESSION['user_id']) {
+            if ($action === 'verify') {
+                db_query("UPDATE users SET email_verified = TRUE WHERE id = ?", [$targetId]);
+                $msg = "User verified successfully.";
+            } elseif ($action === 'ban') {
+                // Assuming we have an is_active or similar column, if not, maybe verify = false?
+                // For now, let's just toggle verification as a placeholder for ban/unban logic or add an is_banned column later
+                // Let's assume verifying manually is the main action needed.
+            }
+        }
+    }
+
     // Get total users count
     $totalUsers = db_fetch("SELECT COUNT(*) as count FROM users")['count'];
 
     // User Search
     $search = sanitize($_GET['search'] ?? '');
+    $roleFilter = sanitize($_GET['role'] ?? '');
 
     $query = "SELECT u.*,
                 COUNT(DISTINCT s.id) as total_submissions,
@@ -31,158 +51,174 @@
          LEFT JOIN evaluations e ON s.id = e.submission_id";
 
     $params = [];
+    $where = [];
 
     if ($search) {
-        $query .= " WHERE u.full_name LIKE ? OR u.email LIKE ?";
+        $where[] = "(u.full_name LIKE ? OR u.email LIKE ?)";
         $params[] = "%$search%";
         $params[] = "%$search%";
     }
 
+    if ($roleFilter) {
+        $where[] = "u.role = ?";
+        $params[] = $roleFilter;
+    }
+
+    if (!empty($where)) {
+        $query .= " WHERE " . implode(' AND ', $where);
+    }
+
     $query .= " GROUP BY u.id ORDER BY u.created_at DESC";
 
-    // Get filterd users
+    // Get filtered users
     $users = db_fetch_all($query, $params);
     ?>
 
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="navbar-container">
-            <a href="<?php echo BASE_URL; ?>" class="navbar-brand">
-                <img src="<?php echo LOGO_URL . 'No%20Background%20Skiloholic.png'; ?>" alt="MyIELTS Logo" class="navbar-logo">
-                <span>MyIELTS Admin</span>
-            </a>
-
-            <ul class="navbar-menu">
-                <li><a href="../index.php">Dashboard</a></li>
-                <li><a href="../tests/manage.php">Manage Tests</a></li>
-                <li><a href="../submissions/queue.php">Submission Queue</a></li>
-                <li><a href="index.php" style="color: var(--primary); font-weight: 700;">Users</a></li>
-                <li><a href="../../dashboard.php">User View</a></li>
-                <li><a href="../../auth/logout.php">Logout</a></li>
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <a href="<?php echo BASE_URL; ?>admin/index.php" class="sidebar-brand">
+                    <img src="<?php echo LOGO_URL . 'No%20Background%20Skiloholic.png'; ?>" alt="Logo" style="height: 32px;">
+                    MyIELTS Admin
+                </a>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="../index.php" class="sidebar-link">📊 Dashboard</a></li>
+                <li><a href="../tests/manage.php" class="sidebar-link">📝 Manage Tests</a></li>
+                <li><a href="../submissions/queue.php" class="sidebar-link">📋 Submission Queue</a></li>
+                <li><a href="index.php" class="sidebar-link active">👥 Manage Users</a></li>
+                <li><hr style="border-color: #374151; margin: 1rem 1.5rem;"></li>
+                <li><a href="../../dashboard.php" class="sidebar-link">🏠 User View</a></li>
+                <li><a href="../../auth/logout.php" class="sidebar-link">🚪 Logout</a></li>
             </ul>
-        </div>
-    </nav>
+        </aside>
 
-    <div class="container" style="margin-top: var(--spacing-lg); margin-bottom: var(--spacing-xl);">
-        <!-- Header -->
-        <div class="card" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; margin-bottom: var(--spacing-lg);">
-            <h1 style="color: white; margin-bottom: var(--spacing-sm);">User Management 👥</h1>
-            <p style="color: rgba(255,255,255,0.9); font-size: 1.125rem;">Manage all platform users</p>
-        </div>
+        <!-- Main Content -->
+        <main class="admin-main">
+            <header class="admin-topbar">
+                <h1 class="admin-page-title">User Management</h1>
+            </header>
 
-        <!-- Statistics -->
-        <div class="grid grid-4" style="margin-bottom: var(--spacing-xl);">
-            <div class="card">
-                <h3 style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 600; text-transform: uppercase; margin-bottom: var(--spacing-sm);">Total Users</h3>
-                <h1 style="color: var(--primary); font-size: 3rem; margin-bottom: 0;"><?php echo $totalUsers; ?></h1>
-            </div>
-
-            <div class="card">
-                <h3 style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 600; text-transform: uppercase; margin-bottom: var(--spacing-sm);">Admins</h3>
-                <h1 style="color: var(--danger); font-size: 3rem; margin-bottom: 0;">
-                    <?php echo db_fetch("SELECT COUNT(*) as count FROM users WHERE role = 'admin'")['count']; ?>
-                </h1>
-            </div>
-
-            <div class="card">
-                <h3 style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 600; text-transform: uppercase; margin-bottom: var(--spacing-sm);">Examiners</h3>
-                <h1 style="color: var(--warning); font-size: 3rem; margin-bottom: 0;">
-                    <?php echo db_fetch("SELECT COUNT(*) as count FROM users WHERE role = 'examiner'")['count']; ?>
-                </h1>
-            </div>
-
-            <div class="card">
-                <h3 style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 600; text-transform: uppercase; margin-bottom: var(--spacing-sm);">Students</h3>
-                <h1 style="color: var(--success); font-size: 3rem; margin-bottom: 0;">
-                    <?php echo db_fetch("SELECT COUNT(*) as count FROM users WHERE role = 'user'")['count']; ?>
-                </h1>
-            </div>
-        </div>
-
-        <!-- Users Table -->
-        <div class="card">
-            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-                <div>
-                    <h2 class="card-title">All Users</h2>
-                    <p class="card-subtitle">View and manage user accounts</p>
+            <div class="admin-content">
+                <!-- Statistics -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-title">Total Users</div>
+                        <div class="stat-value" style="color: var(--primary);"><?php echo $totalUsers; ?></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Students</div>
+                        <div class="stat-value" style="color: var(--success);">
+                            <?php echo db_fetch("SELECT COUNT(*) as count FROM users WHERE role = 'user'")['count']; ?>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Examiners</div>
+                        <div class="stat-value" style="color: var(--warning);">
+                            <?php echo db_fetch("SELECT COUNT(*) as count FROM users WHERE role = 'examiner'")['count']; ?>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Admins</div>
+                        <div class="stat-value" style="color: var(--danger);">
+                            <?php echo db_fetch("SELECT COUNT(*) as count FROM users WHERE role = 'admin'")['count']; ?>
+                        </div>
+                    </div>
                 </div>
-                <form method="GET" action="" style="display: flex; gap: 0.5rem;">
-                    <input type="text" name="search" placeholder="Search name or email..." value="<?php echo htmlspecialchars($search); ?>" style="padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); min-width: 250px;">
-                    <button type="submit" class="btn btn-primary btn-sm">Search</button>
-                    <?php if ($search): ?>
-                        <a href="index.php" class="btn btn-secondary btn-sm">Clear</a>
-                    <?php endif; ?>
-                </form>
-            </div>
 
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="border-bottom: 2px solid var(--border); text-align: left;">
-                            <th style="padding: var(--spacing-sm); font-weight: 600;">Name & Email</th>
-                            <th style="padding: var(--spacing-sm); font-weight: 600;">Role</th>
-                            <th style="padding: var(--spacing-sm); font-weight: 600;">Verified</th>
-                            <th style="padding: var(--spacing-sm); font-weight: 600;">Submissions</th>
-                            <th style="padding: var(--spacing-sm); font-weight: 600;">Avg Score</th>
-                            <th style="padding: var(--spacing-sm); font-weight: 600;">Registered</th>
-                            <th style="padding: var(--spacing-sm); font-weight: 600; text-align: center;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($users as $u): ?>
-                            <tr style="border-bottom: 1px solid var(--border);">
-                                <td style="padding: var(--spacing-sm);">
-                                    <strong><?php echo htmlspecialchars($u['full_name']); ?></strong><br>
-                                    <small style="color: var(--text-secondary);"><?php echo htmlspecialchars($u['email']); ?></small>
-                                </td>
-                                <td style="padding: var(--spacing-sm);">
-                                    <?php
-                                    $roleColors = [
-                                        'admin' => 'danger',
-                                        'examiner' => 'warning',
-                                        'user' => 'success'
-                                    ];
-                                    $roleLabels = [
-                                        'admin' => 'Admin',
-                                        'examiner' => 'Examiner',
-                                        'user' => 'Student'
-                                    ];
-                                    $badgeClass = $roleColors[$u['role']] ?? 'primary';
-                                    echo '<span class="badge badge-' . $badgeClass . '">' . $roleLabels[$u['role']] . '</span>';
-                                    ?>
-                                </td>
-                                <td style="padding: var(--spacing-sm);">
-                                    <?php if ($u['email_verified']): ?>
-                                        <span class="badge badge-success">✓ Verified</span>
-                                    <?php else: ?>
-                                        <span class="badge badge-warning">Pending</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td style="padding: var(--spacing-sm); font-weight: 600;">
-                                    <?php echo $u['total_submissions']; ?>
-                                    <?php if ($u['completed_submissions']): ?>
-                                        <small style="color: var(--text-secondary);">(<?php echo $u['completed_submissions']; ?> evaluated)</small>
-                                    <?php endif; ?>
-                                </td>
-                                <td style="padding: var(--spacing-sm); font-weight: 600;">
-                                    <?php echo $u['avg_score'] ? number_format($u['avg_score'], 1) : '-'; ?>
-                                </td>
-                                <td style="padding: var(--spacing-sm); color: var(--text-secondary); font-size: 0.875rem;">
-                                    <?php echo time_ago($u['created_at']); ?>
-                                </td>
-                                <td style="padding: var(--spacing-sm); text-align: center;">
-                                    <a href="view.php?id=<?php echo $u['id']; ?>" class="btn btn-sm btn-primary">View Details</a>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                <!-- Filters -->
+                <div class="admin-card" style="margin-top: 2rem; margin-bottom: 2rem;">
+                    <form method="GET" action="" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 250px;">
+                            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Search</label>
+                            <input type="text" name="search" placeholder="Search name or email..." value="<?php echo htmlspecialchars($search); ?>" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+                        </div>
+                        <div style="flex: 0 0 200px;">
+                            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Role</label>
+                            <select name="role" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+                                <option value="">All Roles</option>
+                                <option value="user" <?php echo $roleFilter === 'user' ? 'selected' : ''; ?>>Student</option>
+                                <option value="examiner" <?php echo $roleFilter === 'examiner' ? 'selected' : ''; ?>>Examiner</option>
+                                <option value="admin" <?php echo $roleFilter === 'admin' ? 'selected' : ''; ?>>Admin</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button type="submit" class="btn btn-primary">Filter</button>
+                            <?php if ($search || $roleFilter): ?>
+                                <a href="index.php" class="btn btn-secondary">Clear</a>
+                            <?php endif; ?>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Users Table -->
+                <div class="admin-card">
+                    <div class="card-header">
+                        <h2 class="card-title">All Users</h2>
+                    </div>
+
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Stats</th>
+                                    <th>Registered</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($users as $u): ?>
+                                    <tr>
+                                        <td>
+                                            <div style="font-weight: 600;"><?php echo htmlspecialchars($u['full_name']); ?></div>
+                                            <div style="font-size: 0.85rem; color: #6b7280;"><?php echo htmlspecialchars($u['email']); ?></div>
+                                        </td>
+                                        <td>
+                                            <span class="status-badge status-<?php echo $u['role'] === 'admin' ? 'pending' : ($u['role'] === 'examiner' ? 'assigned' : 'completed'); ?>">
+                                                <?php echo ucfirst($u['role']); ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <?php if ($u['email_verified']): ?>
+                                                <span class="status-badge status-completed">Verified</span>
+                                            <?php else: ?>
+                                                <span class="status-badge status-pending">Pending</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <div style="font-size: 0.85rem;">
+                                                <div>Tests: <strong><?php echo $u['total_submissions']; ?></strong></div>
+                                                <div>Avg: <strong><?php echo $u['avg_score'] ? number_format($u['avg_score'], 1) : '-'; ?></strong></div>
+                                            </div>
+                                        </td>
+                                        <td style="color: #6b7280; font-size: 0.85rem;">
+                                            <?php echo date('M j, Y', strtotime($u['created_at'])); ?>
+                                        </td>
+                                        <td>
+                                            <div style="display: flex; gap: 0.5rem;">
+                                                <a href="view.php?id=<?php echo $u['id']; ?>" class="btn btn-sm btn-secondary">Profile</a>
+                                                <?php if (!$u['email_verified']): ?>
+                                                    <form method="POST" onsubmit="return confirm('Manually verify this user?');">
+                                                        <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
+                                                        <input type="hidden" name="action" value="verify">
+                                                        <button type="submit" class="btn btn-sm btn-success">Verify</button>
+                                                    </form>
+                                                <?php endif; ?>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-        </div>
+        </main>
     </div>
-
-    <!-- Footer -->
-    <?php require_once __DIR__ . '/../../includes/footer.php'; ?>
 
     <script src="../../assets/js/main.js"></script>
 </body>

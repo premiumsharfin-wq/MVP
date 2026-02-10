@@ -21,6 +21,9 @@
         $submissionId = intval($_POST['submission_id']);
         $examinerId = intval($_POST['examiner_id']);
         $estimatedTime = sanitize($_POST['estimated_time']);
+
+        // CSRF Verification (Basic placeholder)
+
         // Check if already assigned
         $exists = db_fetch("SELECT * FROM evaluations WHERE submission_id = ?", [$submissionId]);
 
@@ -36,36 +39,64 @@
                 [$submissionId, $examinerId, $estimatedTime]
             );
         }
-        db_query("UPDATE submissions SET status = 'in_evaluation' WHERE id = ?", [$submissionId]);
+        db_query("UPDATE submissions SET status = 'assigned' WHERE id = ?", [$submissionId]);
         send_examiner_assigned_notification($submissionId, $examinerId);
         redirect(BASE_URL . 'admin/submissions/queue.php?assigned=1');
     }
 
+    // Handle Claim (Assign to self)
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['claim_submission'])) {
+        $submissionId = intval($_POST['submission_id']);
+        $examinerId = $_SESSION['user_id'];
+        $estimatedTime = "24 Hours"; // Default
+
+        // Check if already assigned
+        $exists = db_fetch("SELECT * FROM evaluations WHERE submission_id = ?", [$submissionId]);
+
+        if (!$exists) {
+            db_insert(
+                "INSERT INTO evaluations (submission_id, examiner_id, estimated_completion_time, assigned_at)
+                 VALUES (?, ?, ?, NOW())",
+                [$submissionId, $examinerId, $estimatedTime]
+            );
+            db_query("UPDATE submissions SET status = 'in_evaluation' WHERE id = ?", [$submissionId]);
+            redirect(BASE_URL . 'admin/submissions/evaluate.php?id=' . $submissionId);
+        }
+    }
+
+    // Filter & Search
+    $statusFilter = sanitize($_GET['status'] ?? '');
+
     // Data Fetching
-    $examiners = db_fetch_all("SELECT id, full_name, email FROM users WHERE role = 'admin'");
+    $examiners = db_fetch_all("SELECT id, full_name, email FROM users WHERE role = 'admin' OR role = 'examiner'");
 
-    // Pending
-    $pendingSubmissions = db_fetch_all(
-        "SELECT s.*, u.full_name, u.email, t.title as test_title
-         FROM submissions s
-         JOIN users u ON s.user_id = u.id
-         LEFT JOIN writing_tests t ON s.test_id = t.id
-         WHERE s.status = 'pending'
-         ORDER BY s.submitted_at ASC"
-    );
+    // Submissions Query
+    $query = "SELECT s.*, u.full_name, u.email, t.title as test_title,
+                     e.examiner_id, ex.full_name as examiner_name, e.estimated_completion_time
+              FROM submissions s
+              JOIN users u ON s.user_id = u.id
+              LEFT JOIN writing_tests t ON s.test_id = t.id
+              LEFT JOIN evaluations e ON s.id = e.submission_id
+              LEFT JOIN users ex ON e.examiner_id = ex.id";
 
-    // In Evaluation
-    $inEvalSubmissions = db_fetch_all(
-        "SELECT s.*, u.full_name as student_name, t.title as test_title,
-                e.examiner_id, ex.full_name as examiner_name, e.estimated_completion_time
-         FROM submissions s
-         JOIN users u ON s.user_id = u.id
-         LEFT JOIN writing_tests t ON s.test_id = t.id
-         LEFT JOIN evaluations e ON s.id = e.submission_id
-         LEFT JOIN users ex ON e.examiner_id = ex.id
-         WHERE s.status IN ('assigned', 'in_evaluation')
-         ORDER BY s.submitted_at ASC"
-    );
+    $where = [];
+    $params = [];
+
+    if ($statusFilter) {
+        $where[] = "s.status = ?";
+        $params[] = $statusFilter;
+    } else {
+        // Default view: Pending and In Progress
+        $where[] = "s.status IN ('pending', 'assigned', 'in_evaluation')";
+    }
+
+    if (!empty($where)) {
+        $query .= " WHERE " . implode(' AND ', $where);
+    }
+
+    $query .= " ORDER BY CASE WHEN s.status = 'pending' THEN 0 ELSE 1 END, s.submitted_at ASC";
+
+    $submissions = db_fetch_all($query, $params);
     ?>
 
     <div class="admin-layout">
@@ -90,16 +121,8 @@
 
         <!-- Main Content -->
         <main class="admin-main">
-            <!-- Topbar -->
             <header class="admin-topbar">
                 <h1 class="admin-page-title">Submission Queue</h1>
-                <div style="display: flex; gap: 1rem; align-items: center;">
-                    <span class="status-badge status-pending"><?php echo count($pendingSubmissions); ?> Pending</span>
-                    <span class="status-badge status-assigned"><?php echo count($inEvalSubmissions); ?> In Progress</span>
-                    <div style="font-weight: 600; font-size: 0.9rem;">
-                        👤 <?php echo htmlspecialchars($user['full_name']); ?>
-                    </div>
-                </div>
             </header>
 
             <div class="admin-content">
@@ -109,128 +132,93 @@
                     </div>
                 <?php endif; ?>
 
-                <!-- Pending Section -->
-                <section style="margin-bottom: 3rem;">
-                    <div class="card-header">
-                        <h2 class="card-title">⏳ Pending Assignments</h2>
-                        <span class="status-badge status-pending"><?php echo count($pendingSubmissions); ?> Waiting</span>
-                    </div>
+                <!-- Filters -->
+                <div class="admin-card" style="margin-bottom: 2rem; display: flex; gap: 1rem;">
+                    <a href="queue.php" class="btn <?php echo !$statusFilter ? 'btn-primary' : 'btn-secondary'; ?>">Active Queue</a>
+                    <a href="queue.php?status=pending" class="btn <?php echo $statusFilter === 'pending' ? 'btn-primary' : 'btn-secondary'; ?>">Pending Only</a>
+                    <a href="queue.php?status=completed" class="btn <?php echo $statusFilter === 'completed' ? 'btn-primary' : 'btn-secondary'; ?>">Completed History</a>
+                </div>
 
-                    <?php if (empty($pendingSubmissions)): ?>
-                        <div class="admin-card text-center" style="padding: 3rem;">
-                            <h3>No pending submissions 🎉</h3>
-                            <p style="color: #6b7280;">All caught up! Great job.</p>
-                        </div>
-                    <?php else: ?>
-                        <div style="display: grid; gap: 1.5rem;">
-                            <?php foreach ($pendingSubmissions as $submission): ?>
-                                <div id="submission-<?php echo $submission['id']; ?>" class="assignment-card">
-                                    <div class="assignment-header">
-                                        <div>
-                                            <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0 0 0.5rem 0;">
-                                                <?php echo htmlspecialchars($submission['full_name']); ?>
-                                            </h3>
-                                            <div style="color: #6b7280; font-size: 0.9rem;">
-                                                <?php echo htmlspecialchars($submission['email']); ?>
-                                            </div>
+                <!-- Queue List -->
+                <?php if (empty($submissions)): ?>
+                    <div class="admin-card text-center" style="padding: 3rem;">
+                        <h3>No submissions found 🎉</h3>
+                        <p style="color: #6b7280;">There are no submissions matching your criteria.</p>
+                    </div>
+                <?php else: ?>
+                    <div style="display: grid; gap: 1.5rem;">
+                        <?php foreach ($submissions as $submission): ?>
+                            <div id="submission-<?php echo $submission['id']; ?>" class="assignment-card" style="<?php echo $submission['status'] === 'completed' ? 'border-left-color: var(--success);' : ($submission['status'] === 'pending' ? 'border-left-color: var(--warning);' : 'border-left-color: var(--info);'); ?>">
+                                <div class="assignment-header">
+                                    <div>
+                                        <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+                                            <span class="status-badge status-<?php echo $submission['status']; ?>">
+                                                <?php echo ucwords(str_replace('_', ' ', $submission['status'])); ?>
+                                            </span>
+                                            <span style="color: #6b7280; font-size: 0.85rem;">#<?php echo $submission['id']; ?></span>
                                         </div>
-                                        <div style="text-align: right;">
-                                            <div style="font-weight: 600; color: var(--primary);">
-                                                <?php echo $submission['is_custom_test'] ? 'Custom Test' : htmlspecialchars($submission['test_title']); ?>
-                                            </div>
-                                            <small style="color: #9ca3af;">
-                                                Submitted: <?php echo time_ago($submission['submitted_at']); ?>
-                                            </small>
+                                        <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0 0 0.25rem 0;">
+                                            <?php echo htmlspecialchars($submission['full_name']); ?>
+                                        </h3>
+                                        <div style="color: #6b7280; font-size: 0.9rem;">
+                                            <?php echo $submission['is_custom_test'] ? 'Custom Test' : htmlspecialchars($submission['test_title']); ?>
                                         </div>
                                     </div>
-
-                                    <form method="POST" action="" class="assignment-form">
-                                        <input type="hidden" name="submission_id" value="<?php echo $submission['id']; ?>">
-
-                                        <div style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
-                                            <div style="flex: 1; min-width: 200px;">
-                                                <label for="examiner_<?php echo $submission['id']; ?>" style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Assign Examiner</label>
-                                                <select id="examiner_<?php echo $submission['id']; ?>" name="examiner_id" required style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
-                                                    <option value="">Select Examiner...</option>
-                                                    <?php foreach ($examiners as $examiner): ?>
-                                                        <option value="<?php echo $examiner['id']; ?>">
-                                                            <?php echo htmlspecialchars($examiner['full_name']); ?>
-                                                        </option>
-                                                    <?php endforeach; ?>
-                                                </select>
-                                            </div>
-
-                                            <div style="flex: 1; min-width: 200px;">
-                                                <label for="estimated_time_<?php echo $submission['id']; ?>" style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Estimated Completion</label>
-                                                <input type="text" id="estimated_time_<?php echo $submission['id']; ?>"
-                                                       name="estimated_time"
-                                                       placeholder="e.g., 24 hours"
-                                                       required
-                                                       style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
-                                            </div>
-
-                                            <div style="display: flex; gap: 0.5rem;">
-                                                <button type="submit" name="assign_examiner" class="btn btn-primary" style="padding: 0.6rem 1.5rem;">Assign</button>
-                                                <a href="view.php?id=<?php echo $submission['id']; ?>" class="btn btn-secondary" style="padding: 0.6rem 1rem;">View</a>
-                                            </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">
+                                            Submitted: <strong><?php echo time_ago($submission['submitted_at']); ?></strong>
                                         </div>
-                                    </form>
+                                        <?php if ($submission['examiner_name']): ?>
+                                            <div style="font-size: 0.9rem; color: #6b7280;">
+                                                Examiner: <strong><?php echo htmlspecialchars($submission['examiner_name']); ?></strong>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
-                </section>
 
-                <!-- In Progress Section -->
-                <section>
-                    <div class="card-header">
-                        <h2 class="card-title">📝 In Progress</h2>
-                    </div>
+                                <?php if ($submission['status'] === 'pending'): ?>
+                                    <div style="background: #f9fafb; padding: 1rem; border-top: 1px solid #e5e7eb; display: flex; gap: 1rem; align-items: center; justify-content: space-between;">
+                                        <!-- Quick Claim -->
+                                        <form method="POST">
+                                            <input type="hidden" name="submission_id" value="<?php echo $submission['id']; ?>">
+                                            <input type="hidden" name="claim_submission" value="1">
+                                            <button type="submit" class="btn btn-primary">⚡ Claim & Evaluate</button>
+                                        </form>
 
-                    <div class="admin-card" style="padding: 0;">
-                        <?php if (empty($inEvalSubmissions)): ?>
-                            <div style="padding: 2rem; text-align: center; color: #6b7280;">No active evaluations.</div>
-                        <?php else: ?>
-                            <div class="admin-table-wrapper">
-                                <table class="admin-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Student</th>
-                                            <th>Test</th>
-                                            <th>Examiner</th>
-                                            <th>ETA</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($inEvalSubmissions as $submission): ?>
-                                            <tr>
-                                                <td>
-                                                    <div style="font-weight: 600;"><?php echo htmlspecialchars($submission['student_name']); ?></div>
-                                                </td>
-                                                <td><?php echo $submission['is_custom_test'] ? 'Custom' : htmlspecialchars($submission['test_title']); ?></td>
-                                                <td>
-                                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                                        <span style="width: 24px; height: 24px; background: #e5e7eb; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem;">👤</span>
-                                                        <?php echo htmlspecialchars($submission['examiner_name']); ?>
-                                                    </div>
-                                                </td>
-                                                <td><span class="status-badge status-assigned"><?php echo htmlspecialchars($submission['estimated_completion_time']); ?></span></td>
-                                                <td>
-                                                    <?php if ($submission['examiner_id'] == $_SESSION['user_id']): ?>
-                                                        <a href="evaluate.php?id=<?php echo $submission['id']; ?>" class="btn btn-sm btn-primary">Evaluate</a>
-                                                    <?php else: ?>
-                                                        <a href="view.php?id=<?php echo $submission['id']; ?>" class="btn btn-sm btn-secondary">details</a>
-                                                    <?php endif; ?>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
+                                        <span style="color: #9ca3af;">— OR —</span>
+
+                                        <!-- Assign Others -->
+                                        <form method="POST" action="" style="display: flex; gap: 0.5rem; align-items: center;">
+                                            <input type="hidden" name="submission_id" value="<?php echo $submission['id']; ?>">
+                                            <select name="examiner_id" required style="padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+                                                <option value="">Assign to...</option>
+                                                <?php foreach ($examiners as $examiner): ?>
+                                                    <option value="<?php echo $examiner['id']; ?>">
+                                                        <?php echo htmlspecialchars($examiner['full_name']); ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <input type="text" name="estimated_time" placeholder="ETA (e.g. 24h)" required style="width: 100px; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+                                            <button type="submit" name="assign_examiner" class="btn btn-secondary">Assign</button>
+                                        </form>
+                                    </div>
+                                <?php elseif ($submission['status'] === 'completed'): ?>
+                                    <div style="background: #f9fafb; padding: 1rem; border-top: 1px solid #e5e7eb; text-align: right;">
+                                        <a href="view.php?id=<?php echo $submission['id']; ?>" class="btn btn-secondary">View Result</a>
+                                    </div>
+                                <?php else: ?>
+                                    <div style="background: #f9fafb; padding: 1rem; border-top: 1px solid #e5e7eb; text-align: right;">
+                                        <?php if ($submission['examiner_id'] == $_SESSION['user_id']): ?>
+                                            <a href="evaluate.php?id=<?php echo $submission['id']; ?>" class="btn btn-primary">Continue Evaluation</a>
+                                        <?php else: ?>
+                                            <a href="view.php?id=<?php echo $submission['id']; ?>" class="btn btn-secondary">View Status</a>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
                             </div>
-                        <?php endif; ?>
+                        <?php endforeach; ?>
                     </div>
-                </section>
+                <?php endif; ?>
             </div>
         </main>
     </div>

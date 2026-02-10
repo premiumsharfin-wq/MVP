@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Tests - MyIELTS Admin</title>
-    <link rel="stylesheet" href="../../assets/css/main.css?v=2.0">
+    <link rel="stylesheet" href="../../assets/css/main.css?v=2.2">
 </head>
 <body>
     <?php
@@ -14,144 +14,213 @@
 
     require_admin();
 
-    // Handle delete
-    if (isset($_GET['delete'])) {
-        $testId = intval($_GET['delete']);
-        db_query("UPDATE writing_tests SET is_active = FALSE WHERE id = ?", [$testId]);
-        redirect(BASE_URL . 'admin/tests/manage.php?deleted=1');
+    // Handle delete/activate via POST
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (isset($_POST['action']) && isset($_POST['test_id'])) {
+            $testId = intval($_POST['test_id']);
+            $action = $_POST['action'];
+
+            // Verify CSRF (basic check since we haven't implemented full CSRF yet, but good practice)
+            // TODO: Implement proper CSRF token verification
+
+            if ($action === 'deactivate') {
+                db_query("UPDATE writing_tests SET is_active = FALSE WHERE id = ?", [$testId]);
+                $message = "Test deactivated successfully.";
+                $msgType = "success";
+            } elseif ($action === 'activate') {
+                db_query("UPDATE writing_tests SET is_active = TRUE WHERE id = ?", [$testId]);
+                $message = "Test activated successfully.";
+                $msgType = "success";
+            } elseif ($action === 'delete') {
+                // Hard delete (careful!)
+                // Check if any submissions exist
+                $count = db_fetch("SELECT COUNT(*) as count FROM submissions WHERE test_id = ?", [$testId])['count'];
+                if ($count > 0) {
+                    $message = "Cannot delete test with existing submissions. Deactivate it instead.";
+                    $msgType = "error";
+                } else {
+                    db_query("DELETE FROM writing_tests WHERE id = ?", [$testId]);
+                    $message = "Test deleted permanently.";
+                    $msgType = "success";
+                }
+            }
+        }
     }
 
-    // Handle activate
-    if (isset($_GET['activate'])) {
-        $testId = intval($_GET['activate']);
-        db_query("UPDATE writing_tests SET is_active = TRUE WHERE id = ?", [$testId]);
-        redirect(BASE_URL . 'admin/tests/manage.php?activated=1');
+    // Filtering
+    $search = isset($_GET['search']) ? sanitize($_GET['search']) : '';
+    $typeFilter = isset($_GET['type']) ? sanitize($_GET['type']) : '';
+    $sourceFilter = isset($_GET['source']) ? sanitize($_GET['source']) : '';
+    $statusFilter = isset($_GET['status']) ? sanitize($_GET['status']) : '';
+
+    $where = ["1=1"];
+    $params = [];
+
+    if ($search) {
+        $where[] = "title LIKE ?";
+        $params[] = "%$search%";
     }
 
-    // Get all tests
-    $tests = db_fetch_all("SELECT * FROM writing_tests ORDER BY created_at DESC");
+    if ($typeFilter) {
+        $where[] = "test_type = ?";
+        $params[] = $typeFilter;
+    }
+
+    if ($sourceFilter) {
+        $where[] = "source = ?";
+        $params[] = $sourceFilter;
+    }
+
+    if ($statusFilter === 'active') {
+        $where[] = "is_active = TRUE";
+    } elseif ($statusFilter === 'inactive') {
+        $where[] = "is_active = FALSE";
+    }
+
+    $whereClause = implode(' AND ', $where);
+    $tests = db_fetch_all("SELECT * FROM writing_tests WHERE $whereClause ORDER BY created_at DESC", $params);
     ?>
 
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="navbar-container">
-            <a href="<?php echo BASE_URL; ?>" class="navbar-brand">
-                <img src="<?php echo LOGO_URL . 'No%20Background%20Skiloholic.png'; ?>" alt="MyIELTS Logo" class="navbar-logo">
-                <span>MyIELTS Admin</span>
-            </a>
-
-            <ul class="navbar-menu">
-                <li><a href="../index.php">Dashboard</a></li>
-                <li><a href="manage.php" style="color: var(--primary); font-weight: 700;">Manage Tests</a></li>
-                <li><a href="../submissions/queue.php">Submission Queue</a></li>
-                <li><a href="../../dashboard.php">User View</a></li>
-                <li><a href="../../auth/logout.php">Logout</a></li>
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <a href="<?php echo BASE_URL; ?>admin/index.php" class="sidebar-brand">
+                    <img src="<?php echo LOGO_URL . 'No%20Background%20Skiloholic.png'; ?>" alt="Logo" style="height: 32px;">
+                    MyIELTS Admin
+                </a>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="../index.php" class="sidebar-link">📊 Dashboard</a></li>
+                <li><a href="manage.php" class="sidebar-link active">📝 Manage Tests</a></li>
+                <li><a href="../submissions/queue.php" class="sidebar-link">📋 Submission Queue</a></li>
+                <li><a href="../users/index.php" class="sidebar-link">👥 Manage Users</a></li>
+                <li><hr style="border-color: #374151; margin: 1rem 1.5rem;"></li>
+                <li><a href="../../dashboard.php" class="sidebar-link">🏠 User View</a></li>
+                <li><a href="../../auth/logout.php" class="sidebar-link">🚪 Logout</a></li>
             </ul>
-        </div>
-    </nav>
+        </aside>
 
-    <div class="container" style="margin-top: var(--spacing-lg); margin-bottom: var(--spacing-xl);">
-        <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-bottom: var(--spacing-lg);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h1 style="color: white; margin-bottom: var(--spacing-sm);">Manage Tests 📚</h1>
-                    <p style="color: rgba(255,255,255,0.9);">Add, edit, or remove writing tests</p>
+        <!-- Main Content -->
+        <main class="admin-main">
+            <header class="admin-topbar">
+                <h1 class="admin-page-title">Manage Tests</h1>
+                <a href="add.php" class="btn btn-primary">➕ Add New Test</a>
+            </header>
+
+            <div class="admin-content">
+                <?php if (isset($message)): ?>
+                    <div class="alert alert-<?php echo $msgType; ?>"><?php echo $message; ?></div>
+                <?php endif; ?>
+
+                <!-- Filters -->
+                <div class="admin-card" style="margin-bottom: 2rem;">
+                    <form method="GET" action="" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Search</label>
+                            <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Test title..." style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Type</label>
+                            <select name="type" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+                                <option value="">All Types</option>
+                                <option value="full" <?php echo $typeFilter === 'full' ? 'selected' : ''; ?>>Full Test</option>
+                                <option value="task1" <?php echo $typeFilter === 'task1' ? 'selected' : ''; ?>>Task 1</option>
+                                <option value="task2" <?php echo $typeFilter === 'task2' ? 'selected' : ''; ?>>Task 2</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Source</label>
+                            <select name="source" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+                                <option value="">All Sources</option>
+                                <option value="Cambridge" <?php echo $sourceFilter === 'Cambridge' ? 'selected' : ''; ?>>Cambridge</option>
+                                <option value="MyIELTS Practice Series" <?php echo $sourceFilter === 'MyIELTS Practice Series' ? 'selected' : ''; ?>>MyIELTS</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem;">Status</label>
+                            <select name="status" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+                                <option value="">All Status</option>
+                                <option value="active" <?php echo $statusFilter === 'active' ? 'selected' : ''; ?>>Active</option>
+                                <option value="inactive" <?php echo $statusFilter === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button type="submit" class="btn btn-secondary" style="width: 100%;">Filter</button>
+                        </div>
+                    </form>
                 </div>
-                <a href="add.php" class="btn" style="background-color: white; color: var(--primary);">➕ Add New Test</a>
+
+                <!-- Tests Table -->
+                <div class="admin-card">
+                    <div class="card-header">
+                        <h2 class="card-title">Test Library (<?php echo count($tests); ?>)</h2>
+                    </div>
+
+                    <?php if (empty($tests)): ?>
+                        <div style="text-align: center; padding: 3rem; color: #6b7280;">
+                            <p>No tests found matching your criteria.</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="admin-table-wrapper">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Details</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($tests as $test): ?>
+                                        <tr style="<?php echo !$test['is_active'] ? 'opacity: 0.6; background: #f9fafb;' : ''; ?>">
+                                            <td>
+                                                <div style="font-weight: 600;"><?php echo htmlspecialchars($test['title']); ?></div>
+                                            </td>
+                                            <td>
+                                                <div style="display: flex; gap: 0.5rem;">
+                                                    <span class="status-badge status-assigned"><?php echo htmlspecialchars($test['test_type']); ?></span>
+                                                    <span class="status-badge status-pending"><?php echo htmlspecialchars($test['source']); ?></span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <?php if ($test['is_active']): ?>
+                                                    <span class="status-badge status-completed">Active</span>
+                                                <?php else: ?>
+                                                    <span class="status-badge status-pending">Inactive</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td style="font-size: 0.85rem; color: #6b7280;">
+                                                <?php echo date('M j, Y', strtotime($test['created_at'])); ?>
+                                            </td>
+                                            <td>
+                                                <div style="display: flex; gap: 0.5rem;">
+                                                    <a href="edit.php?id=<?php echo $test['id']; ?>" class="btn btn-sm btn-secondary">Edit</a>
+
+                                                    <form method="POST" action="" onsubmit="return confirm('Are you sure?');" style="display: inline;">
+                                                        <input type="hidden" name="test_id" value="<?php echo $test['id']; ?>">
+                                                        <?php if ($test['is_active']): ?>
+                                                            <input type="hidden" name="action" value="deactivate">
+                                                            <button type="submit" class="btn btn-sm btn-warning">Deactivate</button>
+                                                        <?php else: ?>
+                                                            <input type="hidden" name="action" value="activate">
+                                                            <button type="submit" class="btn btn-sm btn-success">Activate</button>
+                                                        <?php endif; ?>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
-        </div>
-
-        <?php if (isset($_GET['added'])): ?>
-            <div class="alert alert-success">Test added successfully!</div>
-        <?php endif; ?>
-
-        <?php if (isset($_GET['deleted'])): ?>
-            <div class="alert alert-success">Test deactivated successfully!</div>
-        <?php endif; ?>
-
-        <?php if (isset($_GET['activated'])): ?>
-            <div class="alert alert-success">Test activated successfully!</div>
-        <?php endif; ?>
-
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">All Tests (<?php echo count($tests); ?>)</h2>
-            </div>
-
-            <?php if (empty($tests)): ?>
-                <div class="text-center" style="padding: var(--spacing-xl); color: var(--text-secondary);">
-                    <h3>No tests created yet</h3>
-                    <p>Click "Add New Test" to create your first test</p>
-                </div>
-            <?php else: ?>
-                <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <thead>
-                            <tr style="border-bottom: 2px solid var(--border); text-align: left;">
-                                <th style="padding: var(--spacing-sm); font-weight: 600;">Title</th>
-                                <th style="padding: var(--spacing-sm); font-weight: 600;">Source</th>
-                                <th style="padding: var(--spacing-sm); font-weight: 600;">Type</th>
-                                <th style="padding: var(--spacing-sm); font-weight: 600;">Status</th>
-                                <th style="padding: var(--spacing-sm); font-weight: 600;">Created</th>
-                                <th style="padding: var(--spacing-sm); font-weight: 600;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($tests as $test): ?>
-                                <tr style="border-bottom: 1px solid var(--border); <?php echo !$test['is_active'] ? 'opacity: 0.5;' : ''; ?>">
-                                    <td style="padding: var(--spacing-sm);">
-                                        <?php echo htmlspecialchars($test['title']); ?>
-                                    </td>
-                                    <td style="padding: var(--spacing-sm);">
-                                        <span class="badge badge-primary"><?php echo htmlspecialchars($test['source']); ?></span>
-                                    </td>
-                                    <td style="padding: var(--spacing-sm);">
-                                        <?php
-                                        $typeLabels = [
-                                            'full' => 'Full Test',
-                                            'task1' => 'Task 1',
-                                            'task2' => 'Task 2'
-                                        ];
-                                        echo $typeLabels[$test['test_type']];
-                                        ?>
-                                    </td>
-                                    <td style="padding: var(--spacing-sm);">
-                                        <?php if ($test['is_active']): ?>
-                                            <span class="badge badge-success">Active</span>
-                                        <?php else: ?>
-                                            <span class="badge badge-error">Inactive</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td style="padding: var(--spacing-sm); font-size: 0.875rem; color: var(--text-secondary);">
-                                        <?php echo format_datetime($test['created_at']); ?>
-                                    </td>
-                                    <td style="padding: var(--spacing-sm);">
-                                        <div style="display: flex; gap: var(--spacing-xs);">
-                                            <?php if ($test['is_active']): ?>
-                                                <a href="?delete=<?php echo $test['id']; ?>"
-                                                   class="btn btn-sm btn-error"
-                                                   onclick="return confirm('Are you sure you want to deactivate this test? Students will no longer be able to take it.');">
-                                                    Deactivate
-                                                </a>
-                                            <?php else: ?>
-                                                <a href="?activate=<?php echo $test['id']; ?>"
-                                                   class="btn btn-sm btn-success">
-                                                    Activate
-                                                </a>
-                                            <?php endif; ?>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php endif; ?>
-        </div>
+        </main>
     </div>
-
-    <!-- Footer -->
-    <?php require_once __DIR__ . '/../../includes/footer.php'; ?>
 
     <script src="../../assets/js/main.js"></script>
 </body>

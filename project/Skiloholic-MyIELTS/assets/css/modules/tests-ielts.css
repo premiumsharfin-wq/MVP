@@ -1,0 +1,254 @@
+/* Real IELTS Test Interface - Robust Layout */
+:root {
+    --ielts-black: #1a1a1a;
+    --ielts-red: #d32f2f;
+    --ielts-bg-gray: #f3f4f6;
+    --ielts-header-height: 70px;
+    --ielts-footer-height: 60px;
+}
+
+body.ielts-test-mode {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    background-color: #fff;
+    font-family: 'Arial', sans-serif;
+    /* IELTS uses standard sans-serif */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header */
+.ielts-header {
+    height: var(--ielts-header-height);
+    background-color: var(--ielts-black);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 20;
+}
+
+.ielts-logo-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.ielts-timer {
+    background: #333;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-family: "Courier New", monospace;
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: #ffd700;
+    /* Gold/Yellow for visibility */
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.ielts-timer.warning {
+    color: #ff4444;
+    animation: pulse 1s infinite;
+}
+
+/* Main Content Wrapper */
+.ielts-main-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Tab Bar (if full test) */
+.ielts-tab-bar {
+    background: #e5e7eb;
+    padding: 0.5rem 2rem 0;
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 1px solid #d1d5db;
+    flex-shrink: 0;
+}
+
+.ielts-tab-btn {
+    padding: 0.75rem 2rem;
+    background: #d1d5db;
+    border: 1px solid #9ca3af;
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    font-weight: 600;
+    color: #4b5563;
+    transition: all 0.2s;
+}
+
+.ielts-tab-btn.active {
+    background: white;
+    color: var(--ielts-black);
+    border-top: 3px solid var(--ielts-red);
+    margin-bottom: -1px;
+    /* Overlap border */
+    z-index: 10;
+}
+
+/* Split Screen Container */
+.ielts-split-view {
+    flex: 1;
+    display: flex;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Left Panel (Question) */
+.ielts-panel-left {
+    width: 50%;
+    background-color: var(--ielts-bg-gray);
+    border-right: 1px solid #ccc;
+    overflow-y: auto;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Right Panel (Answer) */
+.ielts-panel-right {
+    width: 50%;
+    background-color: white;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    overflow-y: hidden;
+    /* Scroll inside textarea instead */
+}
+
+/* Question Content Styling */
+.ielts-question-box {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 4px;
+    /* Slight radius */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+    font-size: 1.05rem;
+    line-height: 1.6;
+}
+
+.ielts-intro-box {
+    background: #fff3cd;
+    border-left: 5px solid #ffc107;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.ielts-image-container {
+    text-align: center;
+    margin: 1.5rem 0;
+    background: white;
+    padding: 1rem;
+    border: 1px solid #eee;
+}
+
+.ielts-image-container img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Answer Area */
+.ielts-answer-area {
+    flex: 1;
+    width: 100%;
+    resize: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 1.5rem;
+    font-family: 'Arial', sans-serif;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.ielts-answer-area:focus {
+    outline: none;
+    border-color: var(--ielts-black);
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+}
+
+.ielts-word-counter {
+    text-align: right;
+    font-weight: bold;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* Footer */
+.ielts-footer {
+    height: var(--ielts-footer-height);
+    background-color: #f3f3f3;
+    border-top: 1px solid #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    /* Submit on right */
+    padding: 0 2rem;
+    flex-shrink: 0;
+    z-index: 20;
+}
+
+/* Animations & Utilities */
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+.high-contrast {
+    filter: contrast(1.2);
+}
+
+.high-contrast .ielts-panel-left {
+    background-color: #ffff00;
+    color: black;
+}
+
+.high-contrast .ielts-panel-right textarea {
+    background-color: black;
+    color: yellow;
+}
+
+@media (max-width: 900px) {
+    .ielts-split-view {
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .ielts-panel-left,
+    .ielts-panel-right {
+        width: 100%;
+        height: auto;
+        overflow: visible;
+        border-right: none;
+        border-bottom: 1rem solid #e5e7eb;
+    }
+
+    .ielts-answer-area {
+        min-height: 400px;
+    }
+}

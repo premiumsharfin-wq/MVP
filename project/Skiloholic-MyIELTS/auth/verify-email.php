@@ -67,7 +67,7 @@
 
     // Handle resend code
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['resend_code'])) {
-        $user = get_current_user();
+        $user = get_authenticated_user();
 
         // Check if there's a recent code (within last 2 minutes)
         $recentCode = db_fetch(

@@ -4,7 +4,18 @@
 
 Your MyIELTS platform is now configured for deployment to **https://skiloholic.com**
 
-**IMPORTANT UPDATE:** The `database/schema.sql` file has been consolidated and corrected. It is now the single source of truth for the database structure. If you have already imported the schema, please DROP all tables and re-import `database/schema.sql`, or manually adjust your tables to match the structure defined in it (specifically `users` table columns `password_hash` and `email_verified`).
+---
+
+## 🚨 URGENT: Fix Database Errors
+
+If you are seeing "Unknown column" errors (e.g., `assigned_at` missing), it means your database schema is outdated.
+
+**DO NOT DELETE YOUR DATABASE.** Instead, follow these steps to fix it without losing data:
+
+1.  Upload the file `fix_db_schema.php` to your `public_html/` folder.
+2.  Visit `https://skiloholic.com/fix_db_schema.php` in your browser.
+3.  The script will automatically add any missing columns.
+4.  Once you see "Database schema update completed successfully", delete the `fix_db_schema.php` file for security.
 
 ---
 

@@ -58,7 +58,7 @@
     // Get submissions
     $submissions = db_fetch_all(
         "SELECT s.*, t.title as test_title, t.test_type,
-                e.overall_band_task1, e.overall_band_task2, e.feedback
+                e.task1_score, e.task2_score, e.overall_score, e.overall_feedback
          FROM submissions s
          LEFT JOIN writing_tests t ON s.test_id = t.id
          LEFT JOIN evaluations e ON s.id = e.submission_id
@@ -152,37 +152,37 @@
                                 </div>
                             </div>
 
-                            <?php if ($submission['status'] === 'completed' && $submission['overall_band_task1']): ?>
+                            <?php if ($submission['status'] === 'completed' && $submission['task1_score'] !== null): ?>
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1rem; padding: 1rem; background: #f9fafb; border-radius: 0.375rem;">
                                     <div>
                                         <div style="font-size: 0.75rem; color: #6b7280; text-transform: uppercase; font-weight: 600;">Task 1 Band</div>
                                         <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">
-                                            <?php echo $submission['overall_band_task1']; ?>
+                                            <?php echo $submission['task1_score']; ?>
                                         </div>
                                     </div>
-                                    <?php if ($submission['overall_band_task2']): ?>
+                                    <?php if ($submission['task2_score']): ?>
                                         <div>
                                             <div style="font-size: 0.75rem; color: #6b7280; text-transform: uppercase; font-weight: 600;">Task 2 Band</div>
                                             <div style="font-size: 1.5rem; font-weight: 700; color: var(--secondary);">
-                                                <?php echo $submission['overall_band_task2']; ?>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div style="font-size: 0.75rem; color: #6b7280; text-transform: uppercase; font-weight: 600;">Overall Writing</div>
-                                            <div style="font-size: 1.5rem; font-weight: 700; color: #10b981;">
-                                                <?php echo round(($submission['overall_band_task1'] + ($submission['overall_band_task2'] * 2)) / 3, 1); ?>
+                                                <?php echo $submission['task2_score']; ?>
                                             </div>
                                         </div>
                                     <?php endif; ?>
+                                    <div>
+                                        <div style="font-size: 0.75rem; color: #6b7280; text-transform: uppercase; font-weight: 600;">Overall Writing</div>
+                                        <div style="font-size: 1.5rem; font-weight: 700; color: #10b981;">
+                                            <?php echo $submission['overall_score']; ?>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <?php if ($submission['feedback']): ?>
+                                <?php if ($submission['overall_feedback']): ?>
                                     <details style="margin-top: 1rem;">
                                         <summary style="cursor: pointer; font-weight: 600; color: var(--primary); padding: 0.5rem 0;">
                                             View Feedback
                                         </summary>
                                         <div style="padding: 1rem; background: #f3f4f6; border-radius: 0.375rem; margin-top: 0.5rem; white-space: pre-wrap;">
-                                            <?php echo htmlspecialchars($submission['feedback']); ?>
+                                            <?php echo htmlspecialchars($submission['overall_feedback']); ?>
                                         </div>
                                     </details>
                                 <?php endif; ?>

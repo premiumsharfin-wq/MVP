@@ -21,14 +21,14 @@
     $pendingTests = db_fetch("SELECT COUNT(*) as count FROM submissions WHERE user_id = ? AND status = 'pending'", [$user['id']])['count'];
 
     // Get average score if available
-    $avgScore = db_fetch("SELECT AVG((overall_band_task1 + overall_band_task2) / 2) as avg FROM evaluations e
+    $avgScore = db_fetch("SELECT AVG(overall_score) as avg FROM evaluations e
                           JOIN submissions s ON e.submission_id = s.id
-                          WHERE s.user_id = ? AND e.overall_band_task1 IS NOT NULL", [$user['id']]);
+                          WHERE s.user_id = ? AND e.overall_score IS NOT NULL", [$user['id']]);
     $averageBand = $avgScore['avg'] ? round($avgScore['avg'], 1) : null;
 
     // Get recent submissions
     $recentSubmissions = db_fetch_all(
-        "SELECT s.*, t.title as test_title, e.overall_band_task1, e.overall_band_task2
+        "SELECT s.*, t.title as test_title, e.task1_score, e.task2_score, e.overall_score
          FROM submissions s
          LEFT JOIN writing_tests t ON s.test_id = t.id
          LEFT JOIN evaluations e ON s.id = e.submission_id
@@ -182,8 +182,8 @@
                                                 </td>
                                                 <td style="padding: 0.75rem; font-weight: 600;">
                                                     <?php
-                                                    if ($sub['status'] === 'completed' && $sub['overall_band_task1']) {
-                                                        echo round(($sub['overall_band_task1'] + $sub['overall_band_task2']) / 2, 1);
+                                                    if ($sub['status'] === 'completed' && $sub['overall_score']) {
+                                                        echo $sub['overall_score'];
                                                     } else {
                                                         echo '-';
                                                     }

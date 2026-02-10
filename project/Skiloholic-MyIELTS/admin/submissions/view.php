@@ -71,15 +71,20 @@ if (!$submission) {
         <div class="card" style="margin-bottom: var(--spacing-lg);">
             <h2 style="color: var(--primary); margin-bottom: var(--spacing-md);">Task 1 Answer</h2>
 
-            <?php if ($submission['task1_question_images']): ?>
-                <?php
-                $images = json_decode($submission['task1_question_images'], true);
-                if ($images) {
-                    foreach ($images as $img) {
-                        echo '<img src="' . htmlspecialchars($img) . '" style="max-width: 100%; margin-bottom: 1rem;"><br>';
-                    }
-                }
-                ?>
+            <?php if (isset($submission['custom_task1_image']) && $submission['custom_task1_image']): ?>
+                <div style="margin-bottom: 1rem;">
+                    <h4 style="margin-bottom: 0.5rem;">Question Image:</h4>
+                    <img src="<?php echo htmlspecialchars($submission['custom_task1_image']); ?>" alt="Task 1 Question" style="max-width: 100%; border-radius: 0.375rem; border: 1px solid var(--border);">
+                </div>
+            <?php endif; ?>
+
+            <?php if (isset($submission['custom_task1_question']) && $submission['custom_task1_question']): ?>
+                <div style="margin-bottom: 1rem;">
+                    <h4 style="margin-bottom: 0.5rem;">Question Prompt:</h4>
+                    <div style="background: #f3f4f6; padding: 1rem; border-radius: 0.375rem;">
+                        <?php echo nl2br(htmlspecialchars($submission['custom_task1_question'])); ?>
+                    </div>
+                </div>
             <?php endif; ?>
 
             <div style="background: var(--bg-tertiary); padding: var(--spacing-md); border-radius: var(--radius-md); white-space: pre-wrap;">
@@ -102,6 +107,15 @@ if (!$submission) {
         <?php if ($submission['task2_answer']): ?>
         <div class="card" style="margin-bottom: var(--spacing-lg);">
             <h2 style="color: var(--secondary); margin-bottom: var(--spacing-md);">Task 2 Answer</h2>
+
+            <?php if (isset($submission['custom_task2_question']) && $submission['custom_task2_question']): ?>
+                <div style="margin-bottom: 1rem;">
+                    <h4 style="margin-bottom: 0.5rem;">Question Prompt:</h4>
+                    <div style="background: #f3f4f6; padding: 1rem; border-radius: 0.375rem;">
+                        <?php echo nl2br(htmlspecialchars($submission['custom_task2_question'])); ?>
+                    </div>
+                </div>
+            <?php endif; ?>
 
             <div style="background: var(--bg-tertiary); padding: var(--spacing-md); border-radius: var(--radius-md); white-space: pre-wrap;">
                 <?php echo htmlspecialchars($submission['task2_answer']); ?>

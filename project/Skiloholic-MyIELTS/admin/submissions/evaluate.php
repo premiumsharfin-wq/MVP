@@ -98,10 +98,10 @@
         }
     }
 
-    // Decode Task 1 question images if custom test
-    $questionImages = [];
-    if ($submission['task1_question_images']) {
-        $questionImages = json_decode($submission['task1_question_images'], true) ?? [];
+    // Check if custom images exist
+    $customImage = null;
+    if (isset($submission['custom_task1_image']) && $submission['custom_task1_image']) {
+        $customImage = $submission['custom_task1_image'];
     }
     ?>
 
@@ -149,14 +149,19 @@
                         <h2 style="color: var(--primary); margin-bottom: var(--spacing-md);">Task 1 Evaluation</h2>
 
                         <!-- Show question images if custom test -->
-                        <?php if (!empty($questionImages)): ?>
+                        <?php if ($customImage): ?>
                             <div style="margin-bottom: var(--spacing-md);">
-                                <h4 style="margin-bottom: var(--spacing-sm);">Question Images:</h4>
-                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--spacing-sm);">
-                                    <?php foreach ($questionImages as $imageUrl): ?>
-                                        <img src="<?php echo htmlspecialchars($imageUrl); ?>" alt="Task 1 Question"
-                                             style="width: 100%; max-width: 500px; border: 2px solid var(--border); border-radius: var(--radius-md);">
-                                    <?php endforeach; ?>
+                                <h4 style="margin-bottom: var(--spacing-sm);">Question Image:</h4>
+                                <img src="<?php echo htmlspecialchars($customImage); ?>" alt="Task 1 Question"
+                                     style="max-width: 100%; border: 2px solid var(--border); border-radius: var(--radius-md);">
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if (isset($submission['custom_task1_question']) && $submission['custom_task1_question']): ?>
+                            <div style="margin-bottom: var(--spacing-md);">
+                                <h4 style="margin-bottom: var(--spacing-sm);">Question Prompt:</h4>
+                                <div style="background: #f3f4f6; padding: 1rem; border-radius: 0.375rem;">
+                                    <?php echo nl2br(htmlspecialchars($submission['custom_task1_question'])); ?>
                                 </div>
                             </div>
                         <?php endif; ?>

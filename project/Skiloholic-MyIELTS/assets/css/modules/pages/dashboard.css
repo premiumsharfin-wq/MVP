@@ -1,0 +1,103 @@
+/* === DASHBOARD === */
+.dashboard-container {
+    margin-top: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.welcome-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    margin-bottom: var(--spacing-lg);
+}
+
+.welcome-title {
+    color: white;
+    margin-bottom: var(--spacing-sm);
+}
+
+.welcome-text {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.125rem;
+}
+
+.stats-grid {
+    margin-bottom: var(--spacing-xl);
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: var(--spacing-sm);
+}
+
+.stat-value {
+    font-size: 3rem;
+    margin-bottom: 0;
+}
+
+.stat-value.primary {
+    color: var(--primary);
+}
+
+.stat-value.success {
+    color: var(--success);
+}
+
+.stat-value.secondary {
+    color: var(--secondary);
+}
+
+.quick-actions-card {
+    margin-bottom: var(--spacing-lg);
+}
+
+.quick-actions-title {
+    margin-bottom: var(--spacing-md);
+}
+
+.btn-action {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-secondary);
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+.submissions-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.submissions-table th {
+    padding: var(--spacing-sm);
+    font-weight: 600;
+    border-bottom: 2px solid var(--border);
+    text-align: left;
+}
+
+.submissions-table td {
+    padding: var(--spacing-sm);
+    border-bottom: 1px solid var(--border);
+}
+
+.submission-date {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.submission-score {
+    font-weight: 600;
+}

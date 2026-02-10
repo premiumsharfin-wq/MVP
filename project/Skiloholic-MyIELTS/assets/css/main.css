@@ -1,0 +1,22 @@
+/* ========================================
+   MyIELTS - Modular CSS Architecture
+   Powered by Skiloholic
+   ======================================== */
+
+/* Modules */
+@import 'modules/variables.css';
+@import 'modules/base.css';
+@import 'modules/layout.css';
+@import 'modules/components.css';
+
+/* Pages */
+@import 'modules/pages/auth-modern.css';
+@import url('modules/pages/home-modern.css');
+@import url('modules/pages/auth-modern.css');
+@import url('modules/pages/student-dashboard.css');
+@import url('modules/pages/admin.css');
+@import url('modules/sidebar.css');
+@import 'modules/pages/home-modern.css';
+@import 'modules/pages/tests.css';
+
+/* Add any temp overrides below */

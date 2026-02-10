@@ -1,0 +1,17 @@
+{
+    "name": "myielts/platform",
+    "description": "MyIELTS - IELTS Preparation Platform",
+    "type": "project",
+    "require": {
+        "php": ">=7.4",
+        "phpmailer/phpmailer": "^6.8"
+    },
+    "require-dev": {},
+    "autoload": {
+        "psr-4": {
+            "MyIELTS\\": "src/"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

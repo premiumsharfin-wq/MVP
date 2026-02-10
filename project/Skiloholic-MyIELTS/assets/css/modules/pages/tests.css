@@ -1,0 +1,67 @@
+/* === TEST PAGES === */
+
+.test-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    margin-bottom: var(--spacing-xl);
+}
+
+.test-header h1 {
+    color: white;
+    margin-bottom: var(--spacing-sm);
+}
+
+.test-header p {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.125rem;
+}
+
+.search-filter-form {
+    display: flex;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.search-input-wrapper {
+    flex: 1;
+    min-width: 200px;
+}
+
+.filter-select-wrapper {
+    width: 150px;
+}
+
+.filter-select-wrapper-lg {
+    width: 200px;
+}
+
+.test-card-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-sm);
+}
+
+.test-card h3 {
+    margin-bottom: var(--spacing-xs);
+}
+
+.test-details {
+    margin-top: var(--spacing-md);
+}
+
+.test-details p {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.test-actions {
+    margin-top: var(--spacing-md);
+}
+
+.custom-eval-card {
+    background-color: #fff3cd;
+    border-left: 4px solid var(--warning);
+    margin-bottom: var(--spacing-xl);
+}

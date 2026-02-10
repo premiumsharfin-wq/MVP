@@ -1,103 +1,109 @@
-/* === DASHBOARD === */
-.dashboard-container {
-    margin-top: var(--spacing-lg);
-    margin-bottom: var(--spacing-xl);
-}
-
-.welcome-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    margin-bottom: var(--spacing-lg);
-}
-
-.welcome-title {
-    color: white;
-    margin-bottom: var(--spacing-sm);
-}
-
-.welcome-text {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 1.125rem;
-}
-
-.stats-grid {
-    margin-bottom: var(--spacing-xl);
-}
-
-.stat-label {
-    color: var(--text-secondary);
-    font-size: 0.875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    margin-bottom: var(--spacing-sm);
-}
-
-.stat-value {
-    font-size: 3rem;
-    margin-bottom: 0;
-}
-
-.stat-value.primary {
-    color: var(--primary);
-}
-
-.stat-value.success {
-    color: var(--success);
-}
-
-.stat-value.secondary {
-    color: var(--secondary);
-}
-
-.quick-actions-card {
-    margin-bottom: var(--spacing-lg);
-}
-
-.quick-actions-title {
-    margin-bottom: var(--spacing-md);
-}
-
-.btn-action {
-    text-decoration: none;
+/* Dashboard Modernization */
+.user-layout, .admin-layout {
     display: flex;
+    min-height: 100vh;
+    background-color: #f3f4f6;
+}
+
+.user-main, .admin-main {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+.page-header, .admin-topbar {
+    margin-bottom: 2rem;
+    background: white;
+    padding: 1.5rem 2rem;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    gap: 10px;
 }
 
-.empty-state {
-    text-align: center;
-    padding: var(--spacing-xl);
-    color: var(--text-secondary);
+.page-title, .admin-page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
 }
 
-.empty-icon {
-    font-size: 3rem;
-    margin-bottom: var(--spacing-sm);
+.page-subtitle {
+    color: #6b7280;
+    margin-top: 0.25rem;
 }
 
-.submissions-table {
+.widget-card, .admin-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    border: 1px solid #f3f4f6;
+    height: 100%;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.widget-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+}
+
+.admin-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
 }
 
-.submissions-table th {
-    padding: var(--spacing-sm);
-    font-weight: 600;
-    border-bottom: 2px solid var(--border);
+.admin-table th {
+    background: #f9fafb;
+    padding: 1rem;
     text-align: left;
-}
-
-.submissions-table td {
-    padding: var(--spacing-sm);
-    border-bottom: 1px solid var(--border);
-}
-
-.submission-date {
-    color: var(--text-secondary);
-    font-size: 0.875rem;
-}
-
-.submission-score {
     font-weight: 600;
+    color: #4b5563;
+    border-bottom: 1px solid #e5e7eb;
 }
+
+.admin-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #f3f4f6;
+    vertical-align: middle;
+}
+
+.admin-table tr:last-child td {
+    border-bottom: none;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.status-pending { background: #fffbeb; color: #b45309; }
+.status-assigned { background: #eff6ff; color: #1d4ed8; }
+.status-completed { background: #ecfdf5; color: #047857; }
+.status-inactive { background: #f3f4f6; color: #4b5563; }
+
+.btn {
+    border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-primary { background: #4f46e5; color: white; border: none; }
+.btn-primary:hover { background: #4338ca; transform: translateY(-1px); }
+
+.btn-secondary { background: white; color: #374151; border: 1px solid #d1d5db; }
+.btn-secondary:hover { background: #f9fafb; border-color: #9ca3af; }
+
+/* Grid System Override */
+.grid { display: grid; gap: 1.5rem; }
+.grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.grid-3 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+.grid-4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
